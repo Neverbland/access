@@ -30,12 +30,12 @@ type Fields struct {
 	Map map[string]interface{}
 }
 
-func (f Fields) ReadFieldPath(path PropertyPath) (interface{}, error) {
-	return path.Read(&f.Map)
+func (f Fields) Field(field string) (interface{}, error) {
+	return Read(field, f.Map)
 }
 
-func (f *Fields) WriteFieldPath(path PropertyPath, v interface{}) error {
-	return path.Write(&f.Map, v)
+func (f *Fields) SetField(field string, v interface{}) error {
+	return Write(field, &f.Map, v)
 }
 
 func TestFieldRead(t *testing.T) {
@@ -108,54 +108,48 @@ func TestFieldRead(t *testing.T) {
 
 		if c.Invalid {
 			_, err := Read(c.Path, c.Object)
-			assert.NotNil(t, err)
+			assert.Error(t, err)
 		} else {
 			v, err := Read(c.Path, c.Object)
+			assert.NoError(t, err)
 			assert.Equal(t, c.Expected, v)
-			assert.Nil(t, err)
 		}
 	}
 }
 
 func TestFieldWrite(t *testing.T) {
 
+	assert := assert.New(t)
 	//map
 
 	m := map[string]string{"firstname": ""}
 
-	err := Write("firstname", &m, "Eugeny")
-	assert.Nil(t, err)
-	assert.Equal(t, "Eugeny", m["firstname"])
+	assert.NoError(Write("firstname", &m, "Eugeny"))
+	assert.Equal("Eugeny", m["firstname"])
 
-	err = Write("lastname", &m, "Tsarykau")
-	assert.Nil(t, err)
-	assert.Equal(t, "Tsarykau", m["lastname"])
+	assert.NoError(Write("lastname", &m, "Tsarykau"))
+	assert.Equal("Tsarykau", m["lastname"])
 
-	err = Write("Address_", &m, "Universe")
-	assert.Nil(t, err)
-	assert.Equal(t, "Universe", m["Address_"])
+	assert.NoError(Write("Address_", &m, "Universe"))
+	assert.Equal("Universe", m["Address_"])
 
 	//struct
 	p := Person{"a", "b", "c"}
 
 	//exported field
-	err = Write("firstname", &p, "Eugeny")
-	assert.Nil(t, err)
-	assert.Equal(t, "Eugeny", p.Firstname)
+	assert.NoError(Write("firstname", &p, "Eugeny"))
+	assert.Equal("Eugeny", p.Firstname)
 
 	//setter
-	err = Write("last_name", &p, "Tsarykau")
-	assert.Nil(t, err)
-	assert.Equal(t, "Tsarykau", p.LastName())
+	assert.NoError(Write("last_name", &p, "Tsarykau"))
+	assert.Equal("Tsarykau", p.LastName())
 
 	//FieldWriter
 	fields := Fields{map[string]interface{}{"firstname": "hello"}}
 
-	err = Write("firstname", &fields, "Eugeny")
-	assert.Nil(t, err)
-	assert.Equal(t, "Eugeny", fields.Map["firstname"])
+	assert.NoError(Write("firstname", &fields, "Eugeny"))
+	assert.Equal("Eugeny", fields.Map["firstname"])
 
-	err = Write("Lastname", &fields, "Tsarykau")
-	assert.Nil(t, err)
-	assert.Equal(t, "Tsarykau", fields.Map["Lastname"])
+	assert.NoError(Write("Lastname", &fields, "Tsarykau"))
+	assert.Equal("Tsarykau", fields.Map["Lastname"])
 }

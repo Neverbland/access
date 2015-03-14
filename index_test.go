@@ -1,7 +1,6 @@
 package access
 
 import (
-	"fmt"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -17,12 +16,12 @@ type Indexes struct {
 	Slice []string
 }
 
-func (i Indexes) ReadIndexPath(path PropertyPath) (interface{}, error) {
-	return path.Read(&i.Slice)
+func (i Indexes) Index(index int) (interface{}, error) {
+	return Read(index, &i.Slice)
 }
 
-func (i *Indexes) WriteIndexPath(path PropertyPath, v interface{}) error {
-	return path.Write(&i.Slice, v)
+func (i *Indexes) SetIndex(index int, v interface{}) error {
+	return Write(index, &i.Slice, v)
 }
 
 func TestIndexRead(t *testing.T) {
@@ -82,13 +81,11 @@ func TestIndexRead(t *testing.T) {
 
 	for _, c := range cases {
 
-		selector := fmt.Sprintf("[%d]", c.Path)
-
 		if c.Invalid {
-			_, err := Read(selector, c.Object)
+			_, err := Read(c.Path, c.Object)
 			assert.NotNil(t, err)
 		} else {
-			v, err := Read(selector, c.Object)
+			v, err := Read(c.Path, c.Object)
 			assert.Equal(t, c.Expected, v)
 			assert.Nil(t, err)
 		}
@@ -97,25 +94,27 @@ func TestIndexRead(t *testing.T) {
 
 func TestIndexWrite(t *testing.T) {
 
+	assert := assert.New(t)
+
 	//array
 	p := [3]string{"Eugeny", "Tsarykau", "Universe"}
 
-	err := Write("[0]", &p, "Aleksandra")
-	assert.Nil(t, err)
-	assert.Equal(t, "Aleksandra", p[0])
+	assert.NoError(Write("[0]", &p, "Aleksandra"))
+	assert.Equal("Aleksandra", p[0])
 
 	//slice
 	s := p[:]
 
-	err = Write("[2]", &s, "World")
-	assert.Nil(t, err)
-	assert.Equal(t, "World", s[2])
+	assert.NoError(Write(2, &s, "World"))
+	assert.Equal("World", s[2])
+
+	assert.NoError(Write(10, &s, "New"))
+	assert.Equal("New", s[10])
 
 	//IndexWriter
 	ir := Indexes{s}
 
-	err = Write("[1]", &ir, "Yudina")
-	assert.Nil(t, err)
-	assert.Equal(t, "Yudina", ir.Slice[1])
+	assert.NoError(Write(1, &ir, "Yudina"))
+	assert.Equal("Yudina", ir.Slice[1])
 
 }
