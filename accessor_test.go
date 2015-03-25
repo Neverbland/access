@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestPropertyPathConstruct(t *testing.T) {
+func TestPropertyPath(t *testing.T) {
 	assert := assert.New(t)
 
 	assert.NotPanics(func() { New("field[0][1].key[2]") })
@@ -14,7 +14,12 @@ func TestPropertyPathConstruct(t *testing.T) {
 	assert.Panics(func() { New("f.") })
 	assert.Panics(func() { New(".f") })
 	assert.Panics(func() { New("f[ 1]") })
-	assert.Panics(func() { New("[1]field") }) //dot required before field access
+	assert.Panics(func() { New([]string{"field", "0", "key"}) })
+	assert.Panics(func() { New("") })
+	assert.Panics(func() { New("[1]field") })     //dot required before field access
+	assert.Panics(func() { New("[hello]field") }) //not numeric index
+
+	assert.Equal("field[0][1].key[2]", New("field[0][1].key[2]").String())
 }
 
 type glossary struct {
