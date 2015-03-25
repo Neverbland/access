@@ -117,4 +117,12 @@ func TestIndexWrite(t *testing.T) {
 	assert.NoError(Write(1, &ir, "Yudina"))
 	assert.Equal("Yudina", ir.Slice[1])
 
+	var anything interface{}
+
+	assert.NoError(Write(2, &anything, "Yudina"))
+	assert.Equal("Yudina", MustRead(2, anything))
+
+	assert.NoError(Write("[3].name", &anything, "Aleksandra"))
+	assert.Equal("Aleksandra", MustRead("[3].name", anything))
+
 }

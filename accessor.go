@@ -242,6 +242,8 @@ func readIndex(v reflect.Value, index int, path *PropertyPath) (reflect.Value, e
 	}
 
 	switch vt.Kind() {
+	case reflect.Interface:
+		return readIndex(v.Elem(), index, path)
 	case reflect.Array, reflect.Slice:
 
 		if index >= v.Len() {
@@ -280,6 +282,8 @@ func readField(v reflect.Value, field string, path *PropertyPath) (reflect.Value
 	}
 
 	switch vt.Kind() {
+	case reflect.Interface:
+		return readField(v.Elem(), field, path)
 	case reflect.Map:
 
 		if kk := vt.Key().Kind(); kk != reflect.String {
@@ -368,13 +372,40 @@ func writeIndex(v reflect.Value, index int, path *PropertyPath, w reflect.Value,
 	vt := v.Type()
 
 	switch vt.Kind() {
+	case reflect.Interface:
+		var e reflect.Value
+
+		if v.IsNil() && v.NumMethod() == 0 {
+			array := make([]interface{}, index+1)
+			e = reflect.ValueOf(&array).Elem()
+		} else {
+			e = v.Elem()
+			e = makeAddressable(e)
+		}
+
+		err := writeIndex(e, index, path, w, wt)
+
+		if err == nil {
+			v.Set(e)
+		}
+
+		return err
+
 	case reflect.Array, reflect.Slice:
 
 		if path != nil {
-			iv := makeAddressable(v.Index(index))
+			var iv reflect.Value
+
+			if index >= v.Len() {
+				iv = reflect.New(vt.Elem()).Elem()
+			} else {
+				iv = makeAddressable(v.Index(index))
+			}
+
 			if err := path.write(iv, w, wt); err != nil {
 				return err
 			}
+
 			return writeIndex(v, index, nil, iv, iv.Type())
 		}
 
@@ -435,6 +466,25 @@ func writeField(v reflect.Value, field string, path *PropertyPath, w reflect.Val
 	vf := reflect.ValueOf(field)
 
 	switch vt.Kind() {
+	case reflect.Interface:
+
+		var e reflect.Value
+
+		if v.IsNil() && v.NumMethod() == 0 {
+			e = reflect.ValueOf(map[string]interface{}{})
+		} else {
+			e = v.Elem()
+			e = makeAddressable(e)
+		}
+
+		err := writeField(e, field, path, w, wt)
+
+		if err == nil {
+			v.Set(e)
+		}
+
+		return err
+
 	case reflect.Map:
 
 		if kk := vt.Key().Kind(); kk != reflect.String {
@@ -443,13 +493,8 @@ func writeField(v reflect.Value, field string, path *PropertyPath, w reflect.Val
 
 		if path != nil {
 			fv := v.MapIndex(vf)
-
 			if !fv.IsValid() {
-				return fmt.Errorf("Map key not exists")
-			}
-
-			if fv.Kind() == reflect.Interface {
-				fv = fv.Elem()
+				fv = reflect.New(vt.Elem()).Elem()
 			}
 
 			fv = makeAddressable(fv)
@@ -622,23 +667,30 @@ func MustRead(s interface{}, v interface{}, dv ...interface{}) (value interface{
 	return New(s).MustRead(v, dv...)
 }
 
-func indirect(v reflect.Value, iface reflect.Type) reflect.Value {
+func indirect(v reflect.Value, accessor reflect.Type) reflect.Value {
 
-	// If v is a named type and is addressable,
+	// If v is not a pointer and is addressable,
 	// start with its address, so that if the type has pointer methods,
 	// we find them.
-	if v.Kind() != reflect.Ptr && v.Type().Name() != "" && v.CanAddr() {
+	if v.Kind() != reflect.Ptr && v.CanAddr() {
 		v = v.Addr()
 	}
+
 	for {
 
-		if iface != nil && v.Type().Implements(iface) {
+		if accessor != nil && v.Type().NumMethod() > 0 && v.Type().Implements(accessor) {
 			break
 		}
 
-		// Load value from interface
-		if v.Kind() == reflect.Interface {
-			v = v.Elem()
+		// Load value from interface if value inside is a pointer
+		if v.Kind() == reflect.Interface && !v.IsNil() {
+
+			e := v.Elem()
+
+			if e.Kind() == reflect.Ptr {
+				v = e
+				continue
+			}
 		}
 
 		if v.Kind() != reflect.Ptr {
@@ -651,6 +703,7 @@ func indirect(v reflect.Value, iface reflect.Type) reflect.Value {
 	return v
 }
 
+//create new pointer for value, so that it became addressable
 func makeAddressable(v reflect.Value) reflect.Value {
 	c := reflect.New(v.Type())
 	c.Elem().Set(v)

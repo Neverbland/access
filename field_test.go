@@ -152,4 +152,12 @@ func TestFieldWrite(t *testing.T) {
 
 	assert.NoError(Write("Lastname", &fields, "Tsarykau"))
 	assert.Equal("Tsarykau", fields.Map["Lastname"])
+
+	var anything interface{}
+
+	assert.NoError(Write("field", &anything, "value"))
+	assert.Equal(map[string]interface{}{"field": "value"}, anything)
+
+	assert.NoError(Write("field2.field21", &anything, "value"))
+	assert.Equal(map[string]interface{}{"field": "value", "field2": map[string]interface{}{"field21": "value"}}, anything)
 }
