@@ -12,6 +12,11 @@ const pathRegexStr = `(?i)(?P<field>\w+)?(?P<index>\[\d+\])?(?P<dot>\.?)`
 
 var pathRegex = regexp.MustCompile(pathRegexStr)
 
+var (
+	pathReaderInterface = reflect.TypeOf((*PathReader)(nil)).Elem()
+	pathWriterInterface = reflect.TypeOf((*PathWriter)(nil)).Elem()
+)
+
 func New(v interface{}) PropertyPath {
 
 	var str string
@@ -136,7 +141,7 @@ func (p PropertyPath) String() string {
 		switch s := accessor.(type) {
 		case string:
 			if i != 0 {
-				path += "."+s
+				path += "." + s
 			} else {
 				path += s
 			}
@@ -153,6 +158,10 @@ func (p PropertyPath) write(v reflect.Value, w reflect.Value, wt reflect.Type) (
 
 	if !v.CanAddr() {
 		return Error{fmt.Errorf("Got unadressable value"), []interface{}{}}
+	}
+
+	if writer, ok := indirect(v, pathWriterInterface).Interface().(PathWriter); ok {
+		return writer.WritePath(p, w.Interface())
 	}
 
 	var rpath *PropertyPath
@@ -183,6 +192,11 @@ func (p PropertyPath) write(v reflect.Value, w reflect.Value, wt reflect.Type) (
 }
 
 func (p PropertyPath) read(v reflect.Value) (rv reflect.Value, err error) {
+
+	if reader, ok := indirect(v, pathReaderInterface).Interface().(PathReader); ok {
+		val, err := reader.ReadPath(p)
+		return reflect.ValueOf(val), err
+	}
 
 	var rpath *PropertyPath
 
@@ -268,6 +282,15 @@ func (e Error) Error() string {
 func (e Error) back(s interface{}) Error {
 	e.Path = append([]interface{}{s}, e.Path...)
 	return e
+}
+
+type PathReader interface {
+	ReadPath(PropertyPath) (interface{}, error)
+}
+
+type PathWriter interface {
+	PathReader
+	WritePath(PropertyPath, interface{}) error
 }
 
 func Write(s interface{}, v interface{}, val interface{}) error {
