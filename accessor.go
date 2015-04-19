@@ -160,6 +160,11 @@ func (p PropertyPath) write(v reflect.Value, w reflect.Value, wt reflect.Type) (
 		return Error{fmt.Errorf("Got unadressable value"), []interface{}{}}
 	}
 
+	if len(p) == 0 {
+		v.Set(w)
+		return nil
+	}
+
 	if writer, ok := indirect(v, pathWriterInterface).Interface().(PathWriter); ok {
 		return writer.WritePath(p, w.Interface())
 	}
@@ -192,6 +197,10 @@ func (p PropertyPath) write(v reflect.Value, w reflect.Value, wt reflect.Type) (
 }
 
 func (p PropertyPath) read(v reflect.Value) (rv reflect.Value, err error) {
+
+	if len(p) == 0 {
+		return v, nil
+	}
 
 	if reader, ok := indirect(v, pathReaderInterface).Interface().(PathReader); ok {
 		val, err := reader.ReadPath(p)
