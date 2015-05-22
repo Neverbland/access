@@ -43,7 +43,7 @@ func New(v interface{}) PropertyPath {
 	}()
 
 	if len(selector) == 0 {
-		panic("empty selector")
+		return PropertyPath{}
 	}
 
 	parts := []interface{}{}

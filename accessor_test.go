@@ -15,7 +15,6 @@ func TestPropertyPath(t *testing.T) {
 	assert.Panics(func() { New(".f") })
 	assert.Panics(func() { New("f[ 1]") })
 	assert.Panics(func() { New([]string{"field", "0", "key"}) })
-	assert.Panics(func() { New("") })
 	assert.Panics(func() { New("[1]field") })     //dot required before field access
 	assert.Panics(func() { New("[hello]field") }) //not numeric index
 
