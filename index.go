@@ -68,7 +68,7 @@ func writeIndex(v reflect.Value, index int, path *Path, w reflect.Value, wt refl
 				return err
 			}
 
-			iv := makeAddressable(reflect.ValueOf(val))
+			iv := allocateNew(reflect.ValueOf(val))
 			if err := path.write(iv, w, wt); err != nil {
 				return err
 			}
@@ -91,27 +91,25 @@ func writeIndex(v reflect.Value, index int, path *Path, w reflect.Value, wt refl
 			array := make([]interface{}, index+1)
 			e = reflect.ValueOf(&array).Elem()
 		} else {
-			e = v.Elem()
-			e = makeAddressable(e)
+			e = allocateNew(v.Elem())
 		}
 
-		err := writeIndex(e, index, path, w, wt)
-
-		if err == nil {
-			v.Set(e)
+		if err := writeIndex(e, index, path, w, wt); err != nil {
+			return err
 		}
 
-		return err
+		return setValue(v, e)
 
 	case reflect.Array, reflect.Slice:
 
+		var iv reflect.Value
+
 		if path != nil {
-			var iv reflect.Value
 
 			if index >= v.Len() {
 				iv = reflect.New(vt.Elem()).Elem()
 			} else {
-				iv = makeAddressable(v.Index(index))
+				iv = allocateNew(v.Index(index))
 			}
 
 			if err := path.write(iv, w, wt); err != nil {
@@ -121,12 +119,17 @@ func writeIndex(v reflect.Value, index int, path *Path, w reflect.Value, wt refl
 			return writeIndex(v, index, nil, iv, iv.Type())
 		}
 
-		if !wt.AssignableTo(vt.Elem()) {
-			return fmt.Errorf("Can't assign value")
+		if index >= v.Len() {
+			iv = reflect.New(vt.Elem()).Elem()
+		} else {
+			iv = allocateNew(v.Index(index))
+		}
+
+		if err := setValue(iv, w); err != nil {
+			return err
 		}
 
 		// Grow slice if necessary
-
 		if v.Kind() == reflect.Slice {
 			cap := v.Cap()
 			if index >= cap {
@@ -145,7 +148,7 @@ func writeIndex(v reflect.Value, index int, path *Path, w reflect.Value, wt refl
 			return fmt.Errorf("Index %d out of range %d.", index, v.Len())
 		}
 
-		v.Index(index).Set(w)
+		v.Index(index).Set(iv)
 
 		return nil
 	default:

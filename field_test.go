@@ -16,6 +16,8 @@ type Person struct {
 	Firstname string
 	lastname  string
 	address   string
+	Name      *string
+	Name2     ***string
 }
 
 func (p Person) LastName() string { return p.lastname }
@@ -39,7 +41,7 @@ func (f *Fields) SetField(field string, v interface{}) error {
 }
 
 func TestFieldRead(t *testing.T) {
-	p := Person{"Eugeny", "Tsarykau", "Universe"}
+	p := Person{"Eugeny", "Tsarykau", "Universe", nil, nil}
 
 	//struct
 	cases := []FieldReadAssertion{
@@ -49,6 +51,7 @@ func TestFieldRead(t *testing.T) {
 		FieldReadAssertion{p, "Tsarykau", "last_name", false},
 		FieldReadAssertion{p, "Tsarykau", "lastName", false},
 		FieldReadAssertion{p, "Tsarykau", "LastName", false},
+		FieldReadAssertion{p, (*string)(nil), "Name", false},
 
 		//invalid
 		FieldReadAssertion{p, nil, "first_name", true},
@@ -67,6 +70,8 @@ func TestFieldRead(t *testing.T) {
 		FieldReadAssertion{&p, "Universe", "getAddress", false},
 		FieldReadAssertion{&p, "Universe", "get_Address", false},
 		FieldReadAssertion{&p, "Universe", "GetAddress", false},
+		FieldReadAssertion{p, (*string)(nil), "Name", false},
+
 		//invalid
 		FieldReadAssertion{&p, nil, "first_name", true},
 		FieldReadAssertion{&p, nil, "there_is_no_field_like_this", true},
@@ -134,11 +139,24 @@ func TestFieldWrite(t *testing.T) {
 	assert.Equal("Universe", m["Address_"])
 
 	//struct
-	p := Person{"a", "b", "c"}
+	p := Person{"a", "b", "c", nil, nil}
 
 	//exported field
 	assert.NoError(Write("firstname", &p, "Eugeny"))
 	assert.Equal("Eugeny", p.Firstname)
+
+	//string pointer type
+
+	strval := "test"
+
+	assert.NoError(Write("name", &p, strval))
+	assert.Equal(strval, *(p.Name))
+
+	assert.NoError(Write("name", &p, &strval))
+	assert.Equal(&strval, p.Name)
+
+	assert.NoError(Write("name2", &p, strval))
+	assert.Equal(strval, ***(p.Name2))
 
 	//setter
 	assert.NoError(Write("last_name", &p, "Tsarykau"))
@@ -160,4 +178,10 @@ func TestFieldWrite(t *testing.T) {
 
 	assert.NoError(Write("field2.field21", &anything, "value"))
 	assert.Equal(map[string]interface{}{"field": "value", "field2": map[string]interface{}{"field21": "value"}}, anything)
+
+	assert.NoError(Write("f3", &anything, &strval))
+	assert.Equal(&strval, MustRead("f3", anything))
+
+	assert.NoError(Write("f3", &anything, "test"))
+	assert.Equal("test", MustRead("f3", anything))
 }

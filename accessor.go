@@ -161,8 +161,7 @@ func (p Path) write(v reflect.Value, w reflect.Value, wt reflect.Type) (err erro
 	}
 
 	if len(p) == 0 {
-		v.Set(w)
-		return nil
+		return setValue(v, w)
 	}
 
 	if writer, ok := indirect(v, pathWriterInterface).Interface().(PathWriter); ok {
@@ -314,6 +313,55 @@ func MustRead(s interface{}, v interface{}, dv ...interface{}) (value interface{
 	return New(s).MustRead(v, dv...)
 }
 
+//set value allocating pointers if needed
+func setValue(v reflect.Value, w reflect.Value) (err error) {
+
+	wt := w.Type()
+
+	for {
+
+		vt := v.Type()
+
+		if v.CanSet() && wt.AssignableTo(vt) {
+			v.Set(w)
+			return nil
+		}
+
+		// Load value from interface if value inside is a pointer
+		if v.Kind() == reflect.Interface && !v.IsNil() {
+
+			e := v.Elem()
+
+			if e.Kind() == reflect.Ptr {
+				v = e
+				continue
+			}
+		}
+
+		if v.Kind() != reflect.Ptr {
+			break
+		}
+
+		if v.IsNil() {
+			nv := reflect.New(vt.Elem())
+
+			defer func(v, nv reflect.Value) {
+				if err == nil {
+					v.Set(nv)
+				}
+
+			}(v, nv)
+
+			v = nv
+		}
+
+		v = v.Elem()
+	}
+
+	return fmt.Errorf("can't assign")
+
+}
+
 func indirect(v reflect.Value, accessor reflect.Type) reflect.Value {
 
 	// If v is not a pointer and is addressable,
@@ -351,12 +399,8 @@ func indirect(v reflect.Value, accessor reflect.Type) reflect.Value {
 }
 
 //create new pointer for value, so that it became addressable
-func makeAddressable(v reflect.Value) reflect.Value {
+func allocateNew(v reflect.Value) reflect.Value {
 	c := reflect.New(v.Type())
 	c.Elem().Set(v)
 	return c.Elem()
-}
-
-func camelcased(s string) string {
-	return strings.Replace(strings.Title(strings.Replace(s, "_", " ", -1)), " ", "", -1)
 }

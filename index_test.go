@@ -111,6 +111,17 @@ func TestIndexWrite(t *testing.T) {
 	assert.NoError(Write(10, &s, "New"))
 	assert.Equal("New", s[10])
 
+	//pointers
+	refs := make([]*string, 2)
+
+	assert.NoError(Write(0, &refs, "test"))
+	assert.Equal("test", *(refs[0]))
+
+	strval := "test2"
+
+	assert.NoError(Write(1, &refs, &strval))
+	assert.Equal(&strval, refs[1])
+
 	//IndexWriter
 	ir := Indexes{s}
 
@@ -124,5 +135,11 @@ func TestIndexWrite(t *testing.T) {
 
 	assert.NoError(Write("[3].name", &anything, "Aleksandra"))
 	assert.Equal("Aleksandra", MustRead("[3].name", anything))
+
+	assert.NoError(Write(0, &anything, &strval))
+	assert.Equal(&strval, MustRead(0, anything))
+
+	assert.NoError(Write(0, &anything, "test"))
+	assert.Equal("test", MustRead(0, anything))
 
 }

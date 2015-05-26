@@ -3,6 +3,7 @@ package access
 import (
 	"fmt"
 	"reflect"
+	"strings"
 )
 
 var (
@@ -112,7 +113,7 @@ func writeField(v reflect.Value, field string, path *Path, w reflect.Value, wt r
 			if err != nil {
 				return err
 			}
-			fv := makeAddressable(reflect.ValueOf(val))
+			fv := allocateNew(reflect.ValueOf(val))
 			if err := path.write(fv, w, wt); err != nil {
 				return err
 			}
@@ -133,17 +134,14 @@ func writeField(v reflect.Value, field string, path *Path, w reflect.Value, wt r
 		if v.IsNil() && v.NumMethod() == 0 {
 			e = reflect.ValueOf(map[string]interface{}{})
 		} else {
-			e = v.Elem()
-			e = makeAddressable(e)
+			e = allocateNew(v.Elem())
 		}
 
-		err := writeField(e, field, path, w, wt)
-
-		if err == nil {
-			v.Set(e)
+		if err := writeField(e, field, path, w, wt); err != nil {
+			return err
 		}
 
-		return err
+		return setValue(v, e)
 
 	case reflect.Map:
 
@@ -151,13 +149,15 @@ func writeField(v reflect.Value, field string, path *Path, w reflect.Value, wt r
 			return fmt.Errorf("Map key type is not a string")
 		}
 
-		if path != nil {
-			fv := v.MapIndex(vf)
-			if !fv.IsValid() {
-				fv = reflect.New(vt.Elem()).Elem()
-			}
+		var fv reflect.Value
 
-			fv = makeAddressable(fv)
+		if fv = v.MapIndex(vf); !fv.IsValid() {
+			fv = reflect.New(vt.Elem()).Elem()
+		} else {
+			fv = allocateNew(fv)
+		}
+
+		if path != nil {
 
 			if err := path.write(fv, w, wt); err != nil {
 				return err
@@ -166,7 +166,11 @@ func writeField(v reflect.Value, field string, path *Path, w reflect.Value, wt r
 			return writeField(v, field, nil, fv, fv.Type())
 		}
 
-		v.SetMapIndex(vf, w)
+		if err := setValue(fv, w); err != nil {
+			return err
+		}
+
+		v.SetMapIndex(vf, fv)
 		return nil
 
 	case reflect.Struct:
@@ -179,8 +183,7 @@ func writeField(v reflect.Value, field string, path *Path, w reflect.Value, wt r
 				return path.write(fv, w, wt)
 			}
 
-			fv.Set(w)
-			return nil
+			return setValue(fv, w)
 		}
 
 		if v.CanAddr() {
@@ -234,4 +237,8 @@ func writeField(v reflect.Value, field string, path *Path, w reflect.Value, wt r
 	default:
 		return fmt.Errorf("struct,map or FieldWriter instance expected")
 	}
+}
+
+func camelcased(s string) string {
+	return strings.Replace(strings.Title(strings.Replace(s, "_", " ", -1)), " ", "", -1)
 }
