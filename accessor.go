@@ -17,7 +17,7 @@ var (
 	pathWriterInterface = reflect.TypeOf((*PathWriter)(nil)).Elem()
 )
 
-func New(v interface{}) PropertyPath {
+func New(v interface{}) Path {
 
 	var str string
 
@@ -43,7 +43,7 @@ func New(v interface{}) PropertyPath {
 	}()
 
 	if len(selector) == 0 {
-		return PropertyPath{}
+		return Path{}
 	}
 
 	parts := []interface{}{}
@@ -130,12 +130,12 @@ func New(v interface{}) PropertyPath {
 
 	}
 
-	return PropertyPath(parts)
+	return Path(parts)
 }
 
-type PropertyPath []interface{}
+type Path []interface{}
 
-func (p PropertyPath) String() string {
+func (p Path) String() string {
 	path := ""
 	for i, accessor := range p {
 		switch s := accessor.(type) {
@@ -154,7 +154,7 @@ func (p PropertyPath) String() string {
 	return path
 }
 
-func (p PropertyPath) write(v reflect.Value, w reflect.Value, wt reflect.Type) (err error) {
+func (p Path) write(v reflect.Value, w reflect.Value, wt reflect.Type) (err error) {
 
 	if !v.CanAddr() {
 		return Error{fmt.Errorf("Got unadressable value"), []interface{}{}}
@@ -169,7 +169,7 @@ func (p PropertyPath) write(v reflect.Value, w reflect.Value, wt reflect.Type) (
 		return writer.WritePath(p, w.Interface())
 	}
 
-	var rpath *PropertyPath
+	var rpath *Path
 
 	if len(p) > 1 {
 		path := p[1:]
@@ -196,7 +196,7 @@ func (p PropertyPath) write(v reflect.Value, w reflect.Value, wt reflect.Type) (
 	return err
 }
 
-func (p PropertyPath) read(v reflect.Value) (rv reflect.Value, err error) {
+func (p Path) read(v reflect.Value) (rv reflect.Value, err error) {
 
 	if len(p) == 0 {
 		return v, nil
@@ -207,7 +207,7 @@ func (p PropertyPath) read(v reflect.Value) (rv reflect.Value, err error) {
 		return reflect.ValueOf(val), err
 	}
 
-	var rpath *PropertyPath
+	var rpath *Path
 
 	if len(p) > 1 {
 		path := p[1:]
@@ -234,7 +234,7 @@ func (p PropertyPath) read(v reflect.Value) (rv reflect.Value, err error) {
 	return rv, err
 }
 
-func (path PropertyPath) Write(v interface{}, w interface{}) error {
+func (path Path) Write(v interface{}, w interface{}) error {
 
 	rv := reflect.ValueOf(v)
 
@@ -245,7 +245,7 @@ func (path PropertyPath) Write(v interface{}, w interface{}) error {
 	return path.write(rv.Elem(), reflect.ValueOf(w), reflect.TypeOf(w))
 }
 
-func (path PropertyPath) Read(v interface{}) (interface{}, error) {
+func (path Path) Read(v interface{}) (interface{}, error) {
 
 	rv := reflect.ValueOf(v)
 
@@ -258,7 +258,7 @@ func (path PropertyPath) Read(v interface{}) (interface{}, error) {
 	return re.Interface(), err
 }
 
-func (path PropertyPath) MustRead(v interface{}, dv ...interface{}) (value interface{}) {
+func (path Path) MustRead(v interface{}, dv ...interface{}) (value interface{}) {
 	var dval interface{}
 	if len(dv) == 1 {
 		dval = dv[0]
@@ -285,7 +285,7 @@ type Error struct {
 }
 
 func (e Error) Error() string {
-	return fmt.Sprintf("%s at `%s`", e.error, PropertyPath(e.Path))
+	return fmt.Sprintf("%s at `%s`", e.error, Path(e.Path))
 }
 
 func (e Error) back(s interface{}) Error {
@@ -294,12 +294,12 @@ func (e Error) back(s interface{}) Error {
 }
 
 type PathReader interface {
-	ReadPath(PropertyPath) (interface{}, error)
+	ReadPath(Path) (interface{}, error)
 }
 
 type PathWriter interface {
 	PathReader
-	WritePath(PropertyPath, interface{}) error
+	WritePath(Path, interface{}) error
 }
 
 func Write(s interface{}, v interface{}, val interface{}) error {

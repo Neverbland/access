@@ -15,11 +15,11 @@ type FieldReader interface {
 }
 
 type FieldWriter interface {
-FieldReader
+	FieldReader
 	SetField(string, interface{}) error
 }
 
-func readField(v reflect.Value, field string, path *PropertyPath) (reflect.Value, error) {
+func readField(v reflect.Value, field string, path *Path) (reflect.Value, error) {
 
 	v = indirect(v, fieldReaderInterface)
 
@@ -78,22 +78,22 @@ func readField(v reflect.Value, field string, path *PropertyPath) (reflect.Value
 		}
 
 		methods := []string{field, "Get" + field}
-	for _, m := range methods {
+		for _, m := range methods {
 
-		if mv := v.MethodByName(m); mv.IsValid() {
+			if mv := v.MethodByName(m); mv.IsValid() {
 
-			if mt := mv.Type(); mt.NumIn() != 0 || mt.NumOut() != 1 {
-				continue
+				if mt := mv.Type(); mt.NumIn() != 0 || mt.NumOut() != 1 {
+					continue
+				}
+
+				fv := mv.Call([]reflect.Value{})[0]
+
+				if path == nil {
+					return fv, nil
+				}
+				return path.read(fv)
 			}
-
-			fv := mv.Call([]reflect.Value{})[0]
-
-			if path == nil {
-				return fv, nil
-			}
-			return path.read(fv)
 		}
-	}
 
 		return reflect.Value{}, fmt.Errorf("Struct has no field %s nor methods %v which satisfy signature func(...) (interface{}) ", camelcased, methods)
 	default:
@@ -101,7 +101,7 @@ func readField(v reflect.Value, field string, path *PropertyPath) (reflect.Value
 	}
 }
 
-func writeField(v reflect.Value, field string, path *PropertyPath, w reflect.Value, wt reflect.Type) error {
+func writeField(v reflect.Value, field string, path *Path, w reflect.Value, wt reflect.Type) error {
 
 	v = indirect(v, fieldWriterInterface)
 
@@ -210,25 +210,25 @@ func writeField(v reflect.Value, field string, path *PropertyPath, w reflect.Val
 		}
 
 		methods := []string{field, "Set" + field}
-	for _, m := range methods {
+		for _, m := range methods {
 
-		if mv := v.MethodByName(m); mv.IsValid() {
+			if mv := v.MethodByName(m); mv.IsValid() {
 
-			mt := mv.Type()
-			numIn := mt.NumIn()
+				mt := mv.Type()
+				numIn := mt.NumIn()
 
-			if numIn > 2 || numIn == 0 || (numIn == 2 && !mt.IsVariadic()) {
-				continue
+				if numIn > 2 || numIn == 0 || (numIn == 2 && !mt.IsVariadic()) {
+					continue
+				}
+
+				if !wt.ConvertibleTo(mt.In(0)) {
+					return fmt.Errorf("Can't call %s(%s)", m, wt)
+				}
+
+				mv.Call([]reflect.Value{w})
+				return nil
 			}
-
-			if !wt.ConvertibleTo(mt.In(0)) {
-				return fmt.Errorf("Can't call %s(%s)", m, wt)
-			}
-
-			mv.Call([]reflect.Value{w})
-			return nil
 		}
-	}
 		return fmt.Errorf("Struct has no field %s nor methods %v which satisfy signature func(interface{},...) (...) ", camelcased, methods)
 
 	default:

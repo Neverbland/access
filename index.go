@@ -15,11 +15,11 @@ type IndexReader interface {
 }
 
 type IndexWriter interface {
-IndexReader
+	IndexReader
 	SetIndex(int, interface{}) error
 }
 
-func readIndex(v reflect.Value, index int, path *PropertyPath) (reflect.Value, error) {
+func readIndex(v reflect.Value, index int, path *Path) (reflect.Value, error) {
 	v = indirect(v, indexReaderInterface)
 	vt := v.Type()
 
@@ -56,7 +56,7 @@ func readIndex(v reflect.Value, index int, path *PropertyPath) (reflect.Value, e
 	}
 }
 
-func writeIndex(v reflect.Value, index int, path *PropertyPath, w reflect.Value, wt reflect.Type) error {
+func writeIndex(v reflect.Value, index int, path *Path, w reflect.Value, wt reflect.Type) error {
 
 	v = indirect(v, indexWriterInterface)
 
@@ -130,7 +130,7 @@ func writeIndex(v reflect.Value, index int, path *PropertyPath, w reflect.Value,
 		if v.Kind() == reflect.Slice {
 			cap := v.Cap()
 			if index >= cap {
-				cap += index-cap+1
+				cap += index - cap + 1
 				newv := reflect.MakeSlice(v.Type(), v.Len(), cap)
 				reflect.Copy(newv, v)
 				v.Set(newv)
