@@ -96,7 +96,7 @@ func readField(v reflect.Value, field string, path *Path) (reflect.Value, error)
 			}
 		}
 
-		return reflect.Value{}, fmt.Errorf("Struct has no field %s nor methods %v which satisfy signature func(...) (interface{}) ", camelcased, methods)
+		return reflect.Value{}, fmt.Errorf("Struct has no field `%s` nor methods %v which satisfy signature func(...) (interface{}) ", field, methods)
 	default:
 		return reflect.Value{}, fmt.Errorf("struct,map or FieldReader instance expected")
 	}
@@ -209,7 +209,7 @@ func writeField(v reflect.Value, field string, path *Path, w reflect.Value, wt r
 				}
 			}
 
-			return fmt.Errorf("Struct has no field %s nor methods %v which satisfy signature func() (interface{}) ", camelcased, methods)
+			return fmt.Errorf("Struct has no field `%s` nor methods %v which satisfy signature func() (interface{}) ", field, methods)
 		}
 
 		methods := []string{field, "Set" + field}
@@ -232,7 +232,7 @@ func writeField(v reflect.Value, field string, path *Path, w reflect.Value, wt r
 				return nil
 			}
 		}
-		return fmt.Errorf("Struct has no field %s nor methods %v which satisfy signature func(interface{},...) (...) ", camelcased, methods)
+		return fmt.Errorf("Struct has no field `%s` nor methods %v which satisfy signature func(interface{},...) (...) ", field, methods)
 
 	default:
 		return fmt.Errorf("struct,map or FieldWriter instance expected")
