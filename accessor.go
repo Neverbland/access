@@ -161,10 +161,10 @@ func (p Path) write(v reflect.Value, w reflect.Value, wt reflect.Type) (err erro
 	}
 
 	if len(p) == 0 {
-		return setValue(v, w)
+		return indirectWrite(v, w,wt)
 	}
 
-	if writer, ok := indirect(v, pathWriterInterface).Interface().(PathWriter); ok {
+	if writer, ok := indirectRead(v, pathWriterInterface).Interface().(PathWriter); ok {
 		return writer.WritePath(p, w.Interface())
 	}
 
@@ -201,7 +201,7 @@ func (p Path) read(v reflect.Value) (rv reflect.Value, err error) {
 		return v, nil
 	}
 
-	if reader, ok := indirect(v, pathReaderInterface).Interface().(PathReader); ok {
+	if reader, ok := indirectRead(v, pathReaderInterface).Interface().(PathReader); ok {
 		val, err := reader.ReadPath(p)
 		return reflect.ValueOf(val), err
 	}
@@ -314,15 +314,13 @@ func MustRead(s interface{}, v interface{}, dv ...interface{}) (value interface{
 }
 
 //set value allocating pointers if needed
-func setValue(v reflect.Value, w reflect.Value) (err error) {
+func indirectWrite(v reflect.Value, w reflect.Value,wt reflect.Type) (err error) {
 
-	wt := w.Type()
+	nilValue:=(wt == nil)
 
 	for {
 
-		vt := v.Type()
-
-		if v.CanSet() && wt.AssignableTo(vt) {
+		if !nilValue && v.CanSet() && wt.AssignableTo(v.Type()) {
 			v.Set(w)
 			return nil
 		}
@@ -332,7 +330,7 @@ func setValue(v reflect.Value, w reflect.Value) (err error) {
 
 			e := v.Elem()
 
-			if e.Kind() == reflect.Ptr {
+			if e.Kind() == reflect.Ptr && !e.IsNil() {
 				v = e
 				continue
 			}
@@ -342,27 +340,48 @@ func setValue(v reflect.Value, w reflect.Value) (err error) {
 			break
 		}
 
+		if v.Elem().Kind() != reflect.Ptr && nilValue && v.CanSet() {
+			break
+		}
+
 		if v.IsNil() {
-			nv := reflect.New(vt.Elem())
+			nv := reflect.New(v.Type().Elem())
 
 			defer func(v, nv reflect.Value) {
 				if err == nil {
 					v.Set(nv)
 				}
-
 			}(v, nv)
 
 			v = nv
 		}
 
-		v = v.Elem()
+ 		v = v.Elem()
 	}
 
-	return fmt.Errorf("can't assign")
 
+	if !v.CanSet() {
+		return fmt.Errorf("got value that couldn't be changed")
+	}
+
+	if nilValue {
+		switch v.Kind() {
+		case reflect.Interface, reflect.Ptr, reflect.Map, reflect.Slice:
+			v.Set(reflect.Zero(v.Type()))
+			return nil
+		}
+		return fmt.Errorf("value must be nullable like interface,pointer,map or slice")
+	}
+
+	if !wt.AssignableTo(v.Type()) {
+		return fmt.Errorf("can't assign")
+	}
+
+	v.Set(w)
+	return nil
 }
 
-func indirect(v reflect.Value, accessor reflect.Type) reflect.Value {
+func indirectRead(v reflect.Value, accessor reflect.Type) reflect.Value {
 
 	// If v is not a pointer and is addressable,
 	// start with its address, so that if the type has pointer methods,
@@ -382,7 +401,7 @@ func indirect(v reflect.Value, accessor reflect.Type) reflect.Value {
 
 			e := v.Elem()
 
-			if e.Kind() == reflect.Ptr {
+			if e.Kind() == reflect.Ptr && !e.IsNil() {
 				v = e
 				continue
 			}

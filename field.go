@@ -22,7 +22,7 @@ type FieldWriter interface {
 
 func readField(v reflect.Value, field string, path *Path) (reflect.Value, error) {
 
-	v = indirect(v, fieldReaderInterface)
+	v = indirectRead(v, fieldReaderInterface)
 
 	vt := v.Type()
 	vf := reflect.ValueOf(field)
@@ -104,7 +104,7 @@ func readField(v reflect.Value, field string, path *Path) (reflect.Value, error)
 
 func writeField(v reflect.Value, field string, path *Path, w reflect.Value, wt reflect.Type) error {
 
-	v = indirect(v, fieldWriterInterface)
+	v = indirectRead(v, fieldWriterInterface)
 
 	if r, ok := v.Interface().(FieldWriter); ok {
 
@@ -141,7 +141,7 @@ func writeField(v reflect.Value, field string, path *Path, w reflect.Value, wt r
 			return err
 		}
 
-		return setValue(v, e)
+		return indirectWrite(v, e, e.Type())
 
 	case reflect.Map:
 
@@ -166,7 +166,7 @@ func writeField(v reflect.Value, field string, path *Path, w reflect.Value, wt r
 			return writeField(v, field, nil, fv, fv.Type())
 		}
 
-		if err := setValue(fv, w); err != nil {
+		if err := indirectWrite(fv, w,wt); err != nil {
 			return err
 		}
 
@@ -183,7 +183,7 @@ func writeField(v reflect.Value, field string, path *Path, w reflect.Value, wt r
 				return path.write(fv, w, wt)
 			}
 
-			return setValue(fv, w)
+			return indirectWrite(fv, w,wt)
 		}
 
 		if v.CanAddr() {

@@ -20,7 +20,7 @@ type IndexWriter interface {
 }
 
 func readIndex(v reflect.Value, index int, path *Path) (reflect.Value, error) {
-	v = indirect(v, indexReaderInterface)
+	v = indirectRead(v, indexReaderInterface)
 	vt := v.Type()
 
 	if r, ok := v.Interface().(IndexReader); ok {
@@ -58,7 +58,7 @@ func readIndex(v reflect.Value, index int, path *Path) (reflect.Value, error) {
 
 func writeIndex(v reflect.Value, index int, path *Path, w reflect.Value, wt reflect.Type) error {
 
-	v = indirect(v, indexWriterInterface)
+	v = indirectRead(v, indexWriterInterface)
 
 	if r, ok := v.Interface().(IndexWriter); ok {
 
@@ -98,7 +98,7 @@ func writeIndex(v reflect.Value, index int, path *Path, w reflect.Value, wt refl
 			return err
 		}
 
-		return setValue(v, e)
+		return indirectWrite(v, e,e.Type())
 
 	case reflect.Array, reflect.Slice:
 
@@ -125,7 +125,7 @@ func writeIndex(v reflect.Value, index int, path *Path, w reflect.Value, wt refl
 			iv = allocateNew(v.Index(index))
 		}
 
-		if err := setValue(iv, w); err != nil {
+		if err := indirectWrite(iv, w,wt); err != nil {
 			return err
 		}
 
