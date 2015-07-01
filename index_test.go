@@ -25,18 +25,18 @@ func (i *Indexes) SetIndex(index int, v interface{}) error {
 }
 
 func TestIndexRead(t *testing.T) {
-	p := [3]string{"Eugeny", "Tsarykau", "Universe"}
+	p := [3]string{"foo", "bar", "baz"}
 
 	//array
 	cases := []IndexReadAssertion{
-		IndexReadAssertion{p, "Eugeny", 0, false},
-		IndexReadAssertion{p, "Tsarykau", 1, false},
-		IndexReadAssertion{p, "Universe", 2, false},
+		IndexReadAssertion{p, "foo", 0, false},
+		IndexReadAssertion{p, "bar", 1, false},
+		IndexReadAssertion{p, "baz", 2, false},
 
 		//pointer
-		IndexReadAssertion{&p, "Eugeny", 0, false},
-		IndexReadAssertion{&p, "Tsarykau", 1, false},
-		IndexReadAssertion{&p, "Universe", 2, false},
+		IndexReadAssertion{&p, "foo", 0, false},
+		IndexReadAssertion{&p, "bar", 1, false},
+		IndexReadAssertion{&p, "baz", 2, false},
 
 		//out of range
 		IndexReadAssertion{p, nil, 3, true},
@@ -48,14 +48,14 @@ func TestIndexRead(t *testing.T) {
 	//slice
 	cases = append(
 		cases,
-		IndexReadAssertion{s, "Eugeny", 0, false},
-		IndexReadAssertion{s, "Tsarykau", 1, false},
-		IndexReadAssertion{s, "Universe", 2, false},
+		IndexReadAssertion{s, "foo", 0, false},
+		IndexReadAssertion{s, "bar", 1, false},
+		IndexReadAssertion{s, "baz", 2, false},
 
 		//pointer
-		IndexReadAssertion{&s, "Eugeny", 0, false},
-		IndexReadAssertion{&s, "Tsarykau", 1, false},
-		IndexReadAssertion{&s, "Universe", 2, false},
+		IndexReadAssertion{&s, "foo", 0, false},
+		IndexReadAssertion{&s, "bar", 1, false},
+		IndexReadAssertion{&s, "baz", 2, false},
 		//out of range
 		IndexReadAssertion{s, nil, 3, true},
 		IndexReadAssertion{&s, nil, 3, true},
@@ -66,14 +66,14 @@ func TestIndexRead(t *testing.T) {
 	//IndexReader
 	cases = append(
 		cases,
-		IndexReadAssertion{ir, "Eugeny", 0, false},
-		IndexReadAssertion{ir, "Tsarykau", 1, false},
-		IndexReadAssertion{ir, "Universe", 2, false},
+		IndexReadAssertion{ir, "foo", 0, false},
+		IndexReadAssertion{ir, "bar", 1, false},
+		IndexReadAssertion{ir, "baz", 2, false},
 
 		//pointer
-		IndexReadAssertion{&ir, "Eugeny", 0, false},
-		IndexReadAssertion{&ir, "Tsarykau", 1, false},
-		IndexReadAssertion{&ir, "Universe", 2, false},
+		IndexReadAssertion{&ir, "foo", 0, false},
+		IndexReadAssertion{&ir, "bar", 1, false},
+		IndexReadAssertion{&ir, "baz", 2, false},
 		//out of range
 		IndexReadAssertion{ir, nil, 3, true},
 		IndexReadAssertion{&ir, nil, 3, true},
@@ -97,16 +97,16 @@ func TestIndexWrite(t *testing.T) {
 	assert := assert.New(t)
 
 	//array
-	p := [3]string{"Eugeny", "Tsarykau", "Universe"}
+	p := [3]string{"foo", "bar", "baz"}
 
-	assert.NoError(Write("[0]", &p, "Aleksandra"))
-	assert.Equal("Aleksandra", p[0])
+	assert.NoError(Write("[0]", &p, "qux"))
+	assert.Equal("qux", p[0])
 
 	//slice
 	s := p[:]
 
-	assert.NoError(Write(2, &s, "World"))
-	assert.Equal("World", s[2])
+	assert.NoError(Write(2, &s, "foo"))
+	assert.Equal("foo", s[2])
 
 	assert.NoError(Write(10, &s, "New"))
 	assert.Equal("New", s[10])
@@ -125,16 +125,16 @@ func TestIndexWrite(t *testing.T) {
 	//IndexWriter
 	ir := Indexes{s}
 
-	assert.NoError(Write(1, &ir, "Yudina"))
-	assert.Equal("Yudina", ir.Slice[1])
+	assert.NoError(Write(1, &ir, "bar"))
+	assert.Equal("bar", ir.Slice[1])
 
 	var anything interface{}
 
-	assert.NoError(Write(2, &anything, "Yudina"))
-	assert.Equal("Yudina", MustRead(2, anything))
+	assert.NoError(Write(2, &anything, "bar"))
+	assert.Equal("bar", MustRead(2, anything))
 
-	assert.NoError(Write("[3].name", &anything, "Aleksandra"))
-	assert.Equal("Aleksandra", MustRead("[3].name", anything))
+	assert.NoError(Write("[3].name", &anything, "foo"))
+	assert.Equal("foo", MustRead("[3].name", anything))
 
 	assert.NoError(Write(0, &anything, &strval))
 	assert.Equal(&strval, MustRead(0, anything))

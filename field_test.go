@@ -41,16 +41,16 @@ func (f *Fields) SetField(field string, v interface{}) error {
 }
 
 func TestFieldRead(t *testing.T) {
-	p := Person{"Eugeny", "Tsarykau", "Universe", nil, nil}
+	p := Person{"foo", "boo", "baz", nil, nil}
 
 	//struct
 	cases := []FieldReadAssertion{
 		//struct value
-		FieldReadAssertion{p, "Eugeny", "firstname", false},
-		FieldReadAssertion{p, "Eugeny", "Firstname", false},
-		FieldReadAssertion{p, "Tsarykau", "last_name", false},
-		FieldReadAssertion{p, "Tsarykau", "lastName", false},
-		FieldReadAssertion{p, "Tsarykau", "LastName", false},
+		FieldReadAssertion{p, "foo", "firstname", false},
+		FieldReadAssertion{p, "foo", "Firstname", false},
+		FieldReadAssertion{p, "boo", "last_name", false},
+		FieldReadAssertion{p, "boo", "lastName", false},
+		FieldReadAssertion{p, "boo", "LastName", false},
 		FieldReadAssertion{p, (*string)(nil), "Name", false},
 
 		//invalid
@@ -60,16 +60,16 @@ func TestFieldRead(t *testing.T) {
 		FieldReadAssertion{p, nil, "getAddressForCountry", true},
 
 		//struct pointer
-		FieldReadAssertion{&p, "Eugeny", "firstname", false},
-		FieldReadAssertion{&p, "Eugeny", "Firstname", false},
-		FieldReadAssertion{&p, "Tsarykau", "last_name", false},
-		FieldReadAssertion{&p, "Tsarykau", "lastName", false},
-		FieldReadAssertion{&p, "Tsarykau", "LastName", false},
-		FieldReadAssertion{&p, "Universe", "address", false},
-		FieldReadAssertion{&p, "Universe", "Address", false},
-		FieldReadAssertion{&p, "Universe", "getAddress", false},
-		FieldReadAssertion{&p, "Universe", "get_Address", false},
-		FieldReadAssertion{&p, "Universe", "GetAddress", false},
+		FieldReadAssertion{&p, "foo", "firstname", false},
+		FieldReadAssertion{&p, "foo", "Firstname", false},
+		FieldReadAssertion{&p, "boo", "last_name", false},
+		FieldReadAssertion{&p, "boo", "lastName", false},
+		FieldReadAssertion{&p, "boo", "LastName", false},
+		FieldReadAssertion{&p, "baz", "address", false},
+		FieldReadAssertion{&p, "baz", "Address", false},
+		FieldReadAssertion{&p, "baz", "getAddress", false},
+		FieldReadAssertion{&p, "baz", "get_Address", false},
+		FieldReadAssertion{&p, "baz", "GetAddress", false},
 		FieldReadAssertion{p, (*string)(nil), "Name", false},
 
 		//invalid
@@ -80,33 +80,33 @@ func TestFieldRead(t *testing.T) {
 		FieldReadAssertion{&p, nil, "getAddressForCountry", true},
 	}
 
-	m := map[string]string{"firstname": "Eugeny", "lastName": "Tsarykau", "address": "Universe"}
+	m := map[string]string{"firstname": "foo", "lastName": "boo", "address": "baz"}
 
-	m2 := map[int]string{0: "Eugeny"}
+	m2 := map[int]string{0: "foo"}
 
 	//map
 	cases = append(
 		cases,
-		FieldReadAssertion{m, "Eugeny", "firstname", false},
-		FieldReadAssertion{m, "Tsarykau", "lastName", false},
-		FieldReadAssertion{m, "Universe", "address", false},
+		FieldReadAssertion{m, "foo", "firstname", false},
+		FieldReadAssertion{m, "boo", "lastName", false},
+		FieldReadAssertion{m, "baz", "address", false},
 		//exact key match required
-		FieldReadAssertion{m, "Eugeny", "first_name", true},
-		FieldReadAssertion{m, "Tsarykau", "lastname", true},
-		FieldReadAssertion{m, "Universe", "Address", true},
+		FieldReadAssertion{m, "foo", "first_name", true},
+		FieldReadAssertion{m, "boo", "lastname", true},
+		FieldReadAssertion{m, "baz", "Address", true},
 
 		//map key must be a string
-		FieldReadAssertion{m2, "Eugeny", "first_name", true},
+		FieldReadAssertion{m2, "foo", "first_name", true},
 	)
 
-	fields := Fields{map[string]interface{}{"firstname": "Eugeny", "lastName": "Tsarykau", "address": "Universe"}}
+	fields := Fields{map[string]interface{}{"firstname": "foo", "lastName": "boo", "address": "baz"}}
 
 	//FieldReader
 	cases = append(
 		cases,
-		FieldReadAssertion{fields, "Eugeny", "firstname", false},
-		FieldReadAssertion{fields, "Tsarykau", "lastName", false},
-		FieldReadAssertion{fields, "Universe", "Address", true},
+		FieldReadAssertion{fields, "foo", "firstname", false},
+		FieldReadAssertion{fields, "boo", "lastName", false},
+		FieldReadAssertion{fields, "baz", "Address", true},
 	)
 
 	for _, c := range cases {
@@ -129,21 +129,21 @@ func TestFieldWrite(t *testing.T) {
 
 	m := map[string]string{"firstname": ""}
 
-	assert.NoError(Write("firstname", &m, "Eugeny"))
-	assert.Equal("Eugeny", m["firstname"])
+	assert.NoError(Write("firstname", &m, "foo"))
+	assert.Equal("foo", m["firstname"])
 
-	assert.NoError(Write("lastname", &m, "Tsarykau"))
-	assert.Equal("Tsarykau", m["lastname"])
+	assert.NoError(Write("lastname", &m, "boo"))
+	assert.Equal("boo", m["lastname"])
 
-	assert.NoError(Write("Address_", &m, "Universe"))
-	assert.Equal("Universe", m["Address_"])
+	assert.NoError(Write("Address_", &m, "baz"))
+	assert.Equal("baz", m["Address_"])
 
 	//struct
 	p := Person{"a", "b", "c", nil, nil}
 
 	//exported field
-	assert.NoError(Write("firstname", &p, "Eugeny"))
-	assert.Equal("Eugeny", p.Firstname)
+	assert.NoError(Write("firstname", &p, "foo"))
+	assert.Equal("foo", p.Firstname)
 
 	//string pointer type
 
@@ -159,17 +159,17 @@ func TestFieldWrite(t *testing.T) {
 	assert.Equal(strval, ***(p.Name2))
 
 	//setter
-	assert.NoError(Write("last_name", &p, "Tsarykau"))
-	assert.Equal("Tsarykau", p.LastName())
+	assert.NoError(Write("last_name", &p, "boo"))
+	assert.Equal("boo", p.LastName())
 
 	//FieldWriter
 	fields := Fields{map[string]interface{}{"firstname": "hello"}}
 
-	assert.NoError(Write("firstname", &fields, "Eugeny"))
-	assert.Equal("Eugeny", fields.Map["firstname"])
+	assert.NoError(Write("firstname", &fields, "foo"))
+	assert.Equal("foo", fields.Map["firstname"])
 
-	assert.NoError(Write("Lastname", &fields, "Tsarykau"))
-	assert.Equal("Tsarykau", fields.Map["Lastname"])
+	assert.NoError(Write("Lastname", &fields, "boo"))
+	assert.Equal("boo", fields.Map["Lastname"])
 
 	var anything interface{}
 
